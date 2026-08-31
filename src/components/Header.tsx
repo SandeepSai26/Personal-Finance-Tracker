@@ -76,22 +76,22 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileNav }) => {
           {/* Middle: Month Filter Selector & Search */}
           <div className="flex items-center gap-2 flex-1 max-w-md mx-2">
             <div className="relative hidden md:block w-full">
-              <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
                 placeholder="Search merchant, category..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3 py-1.5 bg-slate-100 dark:bg-slate-800/80 border border-transparent dark:border-slate-700/60 rounded-xl text-xs text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+                className="w-full pl-9 pr-4 py-2 bg-slate-100 dark:bg-slate-800/80 border border-transparent dark:border-slate-700/60 rounded-xl text-sm text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500"
               />
             </div>
 
             {/* Month Dropdown */}
-            <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800/80 p-1 border border-transparent dark:border-slate-700/60 rounded-xl text-xs">
+            <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800/80 px-2 py-1 border border-transparent dark:border-slate-700/60 rounded-xl text-sm">
               <select
                 value={selectedMonth}
                 onChange={e => setSelectedMonth(Number(e.target.value))}
-                className="bg-transparent text-slate-900 dark:text-white font-semibold py-1 px-2 border-none focus:outline-hidden cursor-pointer"
+                className="bg-transparent text-slate-900 dark:text-white font-semibold py-1 pr-2 border-none focus:outline-hidden cursor-pointer"
               >
                 {months.map(m => (
                   <option key={m.num} value={m.num} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white">
@@ -102,7 +102,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileNav }) => {
               <select
                 value={selectedYear}
                 onChange={e => setSelectedYear(Number(e.target.value))}
-                className="bg-transparent text-slate-900 dark:text-white font-semibold py-1 px-1 border-none focus:outline-hidden cursor-pointer"
+                className="bg-transparent text-slate-900 dark:text-white font-semibold py-1 border-none focus:outline-hidden cursor-pointer"
               >
                 <option value={2026} className="bg-white dark:bg-slate-900">2026</option>
                 <option value={2025} className="bg-white dark:bg-slate-900">2025</option>

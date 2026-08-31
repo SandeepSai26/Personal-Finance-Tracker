@@ -487,14 +487,6 @@ export const DashboardView: React.FC = () => {
               )}
             </div>
           </div>
-
-          <button
-            onClick={() => setActiveTab('health')}
-            className="px-4 py-2 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 font-semibold text-xs shadow-xs transition-colors shrink-0 flex items-center gap-1.5 cursor-pointer text-slate-800 dark:text-slate-200"
-          >
-            <span>Full Health Report</span>
-            <ChevronRight className="w-4 h-4" />
-          </button>
         </div>
       </div>
     </div>

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
+import { get, set, del } from 'idb-keyval';
 import { Transaction, Category, Budget, UserProfile, ActiveTab, SpendingHealthScore } from '../types';
 import { INITIAL_TRANSACTIONS, INITIAL_CATEGORIES, INITIAL_BUDGETS, INITIAL_USER } from '../data/seedData';
 import { calculateSpendingHealth } from '../utils/healthScore';
@@ -66,51 +67,12 @@ const LOCAL_STORAGE_KEY_USER = 'pft_user_v1';
 const LOCAL_STORAGE_KEY_THEME = 'pft_theme_v1';
 
 export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Load state from localStorage or seed
-  const [transactions, setTransactions] = useState<Transaction[]>(() => {
-    try {
-      const saved = localStorage.getItem(LOCAL_STORAGE_KEY_TX);
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
-
-  const [categories, setCategories] = useState<Category[]>(() => {
-    try {
-      const saved = localStorage.getItem(LOCAL_STORAGE_KEY_CAT);
-      return saved ? JSON.parse(saved) : INITIAL_CATEGORIES;
-    } catch {
-      return INITIAL_CATEGORIES;
-    }
-  });
-
-  const [budgets, setBudgets] = useState<Budget[]>(() => {
-    try {
-      const saved = localStorage.getItem(LOCAL_STORAGE_KEY_BUDGET);
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
-
-  const [user, setUser] = useState<UserProfile>(() => {
-    try {
-      const saved = localStorage.getItem(LOCAL_STORAGE_KEY_USER);
-      return saved ? JSON.parse(saved) : INITIAL_USER;
-    } catch {
-      return INITIAL_USER;
-    }
-  });
-
-  const [darkMode, setDarkMode] = useState<boolean>(() => {
-    try {
-      const saved = localStorage.getItem(LOCAL_STORAGE_KEY_THEME);
-      return saved !== null ? JSON.parse(saved) : true;
-    } catch {
-      return true;
-    }
-  });
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [categories, setCategories] = useState<Category[]>(INITIAL_CATEGORIES);
+  const [budgets, setBudgets] = useState<Budget[]>([]);
+  const [user, setUser] = useState<UserProfile>(INITIAL_USER);
+  const [darkMode, setDarkMode] = useState<boolean>(true);
 
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
   const [searchQuery, setSearchQuery] = useState('');
@@ -121,31 +83,63 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [selectedMonth, setSelectedMonth] = useState<number>(8);
   const [selectedYear, setSelectedYear] = useState<number>(2026);
 
-  // Sync state to localStorage & dark class
+  // Load state asynchronously from IndexedDB on mount
   useEffect(() => {
-    localStorage.setItem(LOCAL_STORAGE_KEY_TX, JSON.stringify(transactions));
-  }, [transactions]);
+    const loadData = async () => {
+      try {
+        const txSaved = await get(LOCAL_STORAGE_KEY_TX) ?? JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY_TX) || 'null');
+        if (txSaved) setTransactions(txSaved);
+
+        const catSaved = await get(LOCAL_STORAGE_KEY_CAT) ?? JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY_CAT) || 'null');
+        if (catSaved) setCategories(catSaved);
+
+        const budgetSaved = await get(LOCAL_STORAGE_KEY_BUDGET) ?? JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY_BUDGET) || 'null');
+        if (budgetSaved) setBudgets(budgetSaved);
+
+        const userSaved = await get(LOCAL_STORAGE_KEY_USER) ?? JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY_USER) || 'null');
+        if (userSaved) setUser(userSaved);
+
+        const themeSaved = await get(LOCAL_STORAGE_KEY_THEME) ?? JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY_THEME) || 'null');
+        if (themeSaved !== null) setDarkMode(themeSaved);
+      } catch (e) {
+        console.error("Failed to load data from IndexedDB", e);
+      } finally {
+        setIsLoaded(true);
+      }
+    };
+    loadData();
+  }, []);
+
+  // Sync state to IndexedDB
+  useEffect(() => {
+    if (!isLoaded) return;
+    set(LOCAL_STORAGE_KEY_TX, transactions).catch(console.error);
+  }, [transactions, isLoaded]);
 
   useEffect(() => {
-    localStorage.setItem(LOCAL_STORAGE_KEY_CAT, JSON.stringify(categories));
-  }, [categories]);
+    if (!isLoaded) return;
+    set(LOCAL_STORAGE_KEY_CAT, categories).catch(console.error);
+  }, [categories, isLoaded]);
 
   useEffect(() => {
-    localStorage.setItem(LOCAL_STORAGE_KEY_BUDGET, JSON.stringify(budgets));
-  }, [budgets]);
+    if (!isLoaded) return;
+    set(LOCAL_STORAGE_KEY_BUDGET, budgets).catch(console.error);
+  }, [budgets, isLoaded]);
 
   useEffect(() => {
-    localStorage.setItem(LOCAL_STORAGE_KEY_USER, JSON.stringify(user));
-  }, [user]);
+    if (!isLoaded) return;
+    set(LOCAL_STORAGE_KEY_USER, user).catch(console.error);
+  }, [user, isLoaded]);
 
   useEffect(() => {
-    localStorage.setItem(LOCAL_STORAGE_KEY_THEME, JSON.stringify(darkMode));
+    if (!isLoaded) return;
+    set(LOCAL_STORAGE_KEY_THEME, darkMode).catch(console.error);
     if (darkMode) {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
     }
-  }, [darkMode]);
+  }, [darkMode, isLoaded]);
 
   const toggleDarkMode = () => setDarkMode(prev => !prev);
 
@@ -226,25 +220,32 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setUser(prev => ({ ...prev, ...fields }));
   };
 
-  const resetToSeedData = () => {
+  const resetToSeedData = async () => {
     setTransactions(INITIAL_TRANSACTIONS);
     setCategories(INITIAL_CATEGORIES);
     setBudgets(INITIAL_BUDGETS);
     setUser(INITIAL_USER);
+    await del(LOCAL_STORAGE_KEY_TX);
+    await del(LOCAL_STORAGE_KEY_CAT);
+    await del(LOCAL_STORAGE_KEY_BUDGET);
+    await del(LOCAL_STORAGE_KEY_USER);
     localStorage.removeItem(LOCAL_STORAGE_KEY_TX);
     localStorage.removeItem(LOCAL_STORAGE_KEY_CAT);
     localStorage.removeItem(LOCAL_STORAGE_KEY_BUDGET);
     localStorage.removeItem(LOCAL_STORAGE_KEY_USER);
   };
 
-  const clearAllTransactions = () => {
+  const clearAllTransactions = async () => {
     setTransactions([]);
+    await set(LOCAL_STORAGE_KEY_TX, []);
     localStorage.setItem(LOCAL_STORAGE_KEY_TX, JSON.stringify([]));
   };
 
-  const clearAllData = () => {
+  const clearAllData = async () => {
     setTransactions([]);
     setBudgets([]);
+    await set(LOCAL_STORAGE_KEY_TX, []);
+    await set(LOCAL_STORAGE_KEY_BUDGET, []);
     localStorage.setItem(LOCAL_STORAGE_KEY_TX, JSON.stringify([]));
     localStorage.setItem(LOCAL_STORAGE_KEY_BUDGET, JSON.stringify([]));
   };
@@ -305,6 +306,14 @@ export const FinanceProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const healthScore = useMemo(() => {
     return calculateSpendingHealth(transactions, categories, budgets, selectedMonth, selectedYear);
   }, [transactions, categories, budgets, selectedMonth, selectedYear]);
+
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-[#0f172a] flex items-center justify-center">
+        <div className="w-10 h-10 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   return (
     <FinanceContext.Provider
