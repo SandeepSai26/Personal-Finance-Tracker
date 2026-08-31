@@ -1,0 +1,6 @@
+{
+  "name": "Personal Finance Tracker",
+  "description": "Modern personal finance management application to track income, expenses, budgets, and spending health.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
